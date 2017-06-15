@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import os, sys, zipfile, unicodedata
+import os, sys, zipfile, unicodedata, fcntl
 from subprocess import Popen, PIPE, STDOUT
 
 def main(path):
@@ -18,15 +18,28 @@ def main(path):
         zip_path = zipFolder4Win(os.path.abspath(path[0]))
 
     # zipファイル作成後にパスワードを設定するか確認
-    print "Do you want to set password?"
-    answer = raw_input()
+    answer = raw_input("Do you want to set password? [Y/n]").lower()
 
-    if answer == 'yes':
+    if answer in ['', 'y', 'ye', 'yes']:
         # zipcloakを実行するためのコマンドを作成
         zipcloak_cmd = 'zipcloak ' + zip_path
 
-        for line in get_stdout(zipcloak_cmd):
-            sys.stdout.write(line)
+        # zipの暗号化のためにzipcloakを呼び出す
+        p_zipcloak = Popen(zipcloak_cmd, shell=True, stdout=PIPE, stdin=PIPE, stderr=STDOUT)
+        # おまじない.file status flagを操作することでnonbloking readを使用可能にしているらしい
+        fcntl.fcntl(p_zipcloak.stdout.fileno(), fcntl.F_SETFL, os.O_NONBLOCK)
+
+        # 標準出力を（非同期）で取り出す
+        while True:
+            try:
+                line = p_zipcloak.stdout.read()
+                if line:
+                    sys.stdout.write(line)
+                if not line and p_zipcloak.poll() is not None:
+                    break
+            except Exception:
+                pass
+        print "Completed!"
     else:
         print "Completed!"
 
@@ -43,9 +56,6 @@ def zipFile4Win(path):
     normalize_unicode_filename = unicodedata.normalize("NFKC", unicode_filename)
     # unicode文字は任意の文字コードでencode可能であり、ここではwindowsで使用されるcp932(shift_jis)を設定
     cp932_filename = normalize_unicode_filename.encode("cp932", "replace")
-
-    #print unicode_filename.encode("cp932")
-    #print cp932_filename
 
     # ZipFileをオープン
     zip = zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED)
@@ -99,6 +109,7 @@ def get_stdout(cmd):
             yield line
         if not line and p_zipcloak.poll() is not None:
             break
+
 
 if __name__ == "__main__":
     main(sys.argv[1:])
