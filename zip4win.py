@@ -91,7 +91,7 @@ def zipFolder4Win(path):
             zip_targets.append((file_path, cp932_filename))
 
     # zipファイルの作成
-    zip = zipfile.ZipFile(zip_path, 'w')
+    zip = zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED)
     for file_path, archive_name in zip_targets:
         zip.write(file_path, archive_name)
     zip.close()
