@@ -22,7 +22,8 @@ def main(path):
 
     if answer in ['', 'y', 'ye', 'yes']:
         # zipcloakを実行するためのコマンドを作成
-        zipcloak_cmd = 'zipcloak ' + zip_path
+        # zipcloakの引数は""で括らないと()などの文字でエラーとなるため必要
+        zipcloak_cmd = 'zipcloak "' +  zip_path + '"'
 
         # zipの暗号化のためにzipcloakを呼び出す
         p_zipcloak = Popen(zipcloak_cmd, shell=True, stdout=PIPE, stdin=PIPE, stderr=STDOUT)
